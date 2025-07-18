@@ -165,34 +165,21 @@
         function renderListView() {
             const itemsByLocation = {};
             let itemsFound = false;
-
-            // Group items that need restocking by location
             appData.trolleyData.forEach(drawer => {
                 drawer.items.forEach(item => {
                     if (item.current < item.required) {
                         itemsFound = true;
-                        if (!itemsByLocation[item.location]) {
-                            itemsByLocation[item.location] = [];
-                        }
-                        itemsByLocation[item.location].push({
-                            name: item.name,
-                            needed: item.required - item.current
-                        });
+                        if (!itemsByLocation[item.location]) itemsByLocation[item.location] = [];
+                        itemsByLocation[item.location].push({ name: item.name, needed: item.required - item.current });
                     }
                 });
             });
-
             if (!itemsFound) {
                 listView.innerHTML = `<div class="text-center py-16"><h2 class="text-3xl font-bold text-green-500">All Stocked!</h2><p class="text-gray-500 dark:text-gray-400 mt-2">No items require restocking.</p></div>`;
                 return;
             }
-
             let listHtml = `<div class="mb-4"><button id="copy-list-btn" class="w-full p-3 bg-indigo-500 text-white font-bold rounded-md hover:bg-indigo-600">Copy List for Sharing</button></div>`;
-            
-            // Get sorted locations
             const sortedLocations = Object.keys(itemsByLocation).sort();
-
-            // Build HTML from sorted locations
             sortedLocations.forEach(location => {
                 listHtml += `<h2 class="text-xl font-bold mt-4 mb-2 text-gray-800 dark:text-gray-200">${location}</h2><ul class="space-y-3">`;
                 itemsByLocation[location].forEach(item => {
@@ -200,7 +187,6 @@
                 });
                 listHtml += '</ul>';
             });
-            
             listView.innerHTML = listHtml;
         }
 
@@ -269,14 +255,44 @@
             settingsOverlay.classList.remove('flex');
             renderAll();
         });
+        
+        // --- iOS Tap Fix Logic ---
+        let touchStartTarget = null;
+        countingView.addEventListener('touchstart', e => {
+             // Record the element where the touch started
+            touchStartTarget = e.target;
+        }, { passive: true });
+
+        countingView.addEventListener('touchend', e => {
+            // Check if the touch ended on the same element it started on
+            if (touchStartTarget === e.target) {
+                handleTap(e.target);
+            }
+            touchStartTarget = null;
+        });
+        
+        // Keep click for non-touch devices
         countingView.addEventListener('click', e => {
+            // Check if it's a touch device; if so, the touchend listener already handled it.
+            if ('ontouchstart' in window) return;
+            handleTap(e.target);
+        });
+
+        function handleTap(target) {
             if (!appData.trolleyData[currentDrawerIndex]?.items[currentItemIndex]) return;
             const item = appData.trolleyData[currentDrawerIndex].items[currentItemIndex];
-            if (e.target.closest('#reset-item-button')) item.current = item.required;
-            else if (e.target.closest('#count-display')) item.current = Math.max(0, item.current - (parseInt(item.packSize) || 1));
+            if (target.closest('#reset-item-button')) {
+                item.current = item.required;
+            } else if (target.closest('#count-display')) {
+                item.current = Math.max(0, item.current - (parseInt(item.packSize) || 1));
+            } else {
+                return; // Didn't tap a known interactive element
+            }
             saveData();
             renderCountingView();
-        });
+        }
+        // --- End iOS Tap Fix ---
+
         countingView.addEventListener('change', e => {
             if (e.target.id === 'pack-size-input') {
                 appData.trolleyData[currentDrawerIndex].items[currentItemIndex].packSize = parseInt(e.target.value) || 1;
@@ -377,7 +393,7 @@
                             saveData();
                             loadData();
                             renderAll();
-                            renderEditView(); // Re-render settings view
+                            renderEditView();
                             alert("Data imported successfully!");
                         }
                     } else { alert("Import failed: Invalid file format."); }
