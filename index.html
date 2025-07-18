@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Anaesthetic Trolley Restock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        html, body { overscroll-behavior-y: contain; font-family: 'Inter', sans-serif; }
+        .touch-area { touch-action: none; }
+        .count-display.needs-restock { animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red {
+            0%, 100% { background-color: #fca5a5; } /* red-300 */
+            50% { background-color: #ef4444; } /* red-500 */
+        }
+        .edit-input { @apply w-full p-2 border border-gray-300 rounded-md bg-white dark:bg-gray-600 dark:border-gray-500 dark:text-white; }
+        .view-container { display: none; }
+        .view-container.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 h-full flex items-center justify-center">
+
+    <div class="w-full max-w-md h-full md:h-auto md:max-h-[90vh] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col overflow-hidden">
+
+        <!-- Header with Tabs -->
+        <header class="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+            <nav class="flex justify-around">
+                <button data-view="counting" class="tab-button px-4 py-3 text-base md:text-lg font-bold w-1/3">Counting</button>
+                <button data-view="list" class="tab-button px-4 py-3 text-base md:text-lg font-bold w-1/3">Restock List</button>
+                <button data-view="edit" class="tab-button px-4 py-3 text-base md:text-lg font-bold w-1/3">Edit</button>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="app-container" class="flex-grow flex flex-col touch-area relative overflow-y-auto">
+            <div id="counting-view" class="view-container flex-grow flex-col justify-between items-center text-center p-6"></div>
+            <div id="list-view" class="view-container flex-grow p-4 overflow-y-auto flex-col"></div>
+            <div id="edit-view" class="view-container flex-grow p-4 overflow-y-auto flex-col"></div>
+        </main>
+        
+        <footer id="footer" class="bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 p-3 text-center">
+            <button id="reset-counts-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg w-full md:w-auto">
+                Reset All Counts
+            </button>
+        </footer>
+
+        <!-- Hidden file input for JSON import -->
+        <input type="file" id="import-file-input" class="hidden" accept="application/json">
+    </div>
+
+    <script>
+        // --- DEFAULT DATA ---
+        const defaultTrolleyData = [
+            { drawerName: "Drawer 1: Airway", items: [ { name: "Laryngoscope Blade (Sz 3)", required: 2, location: "Clean Utility - Shelf A1", packSize: 1 } ]},
+            { drawerName: "Drawer 2: Needles & Syringes", items: [ { name: "Needles (21G)", required: 50, location: "Stores - Bin B3", packSize: 5 }, { name: "Syringes (10ml)", required: 20, location: "Stores - Bin C5", packSize: 1 } ]},
+            { drawerName: "Drawer 3: Medications", items: [ { name: "Propofol 1%", required: 5, location: "Pharmacy - Fridge", packSize: 1 } ]}
+        ];
+
+        // --- STATE MANAGEMENT ---
+        let trolleyData = [];
+        let currentDrawerIndex = 0;
+        let currentItemIndex = 0;
+        let activeView = 'counting';
+
+        // --- DOM ELEMENTS ---
+        const appContainer = document.getElementById('app-container');
+        const countingView = document.getElementById('counting-view');
+        const listView = document.getElementById('list-view');
+        const editView = document.getElementById('edit-view');
+        const footer = document.getElementById('footer');
+        const importFileInput = document.getElementById('import-file-input');
+
+        // --- DATA PERSISTENCE & VALIDATION ---
+        function saveData() {
+            localStorage.setItem('trolleyData', JSON.stringify(trolleyData));
+        }
+
+        function loadData() {
+            const savedData = localStorage.getItem('trolleyData');
+            try {
+                const dataToLoad = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultTrolleyData));
+                if (isTrolleyDataValid(dataToLoad)) {
+                    trolleyData = dataToLoad;
+                    // Ensure defaults for any missing fields after loading
+                    trolleyData.forEach(drawer => {
+                        drawer.items.forEach(item => {
+                            if (item.current === undefined) item.current = item.required;
+                            if (item.packSize === undefined) item.packSize = 1;
+                        });
+                    });
+                } else {
+                    throw new Error("Invalid data structure in localStorage.");
+                }
+            } catch (error) {
+                console.error("Failed to load or parse data, resetting to defaults.", error);
+                trolleyData = JSON.parse(JSON.stringify(defaultTrolleyData));
+                saveData(); // Save the default structure
+            }
+        }
+
+        function isTrolleyDataValid(data) {
+            if (!Array.isArray(data)) return false;
+            return data.every(drawer => 
+                typeof drawer === 'object' &&
+                drawer !== null &&
+                typeof drawer.drawerName === 'string' &&
+                Array.isArray(drawer.items) &&
+                drawer.items.every(item => 
+                    typeof item === 'object' &&
+                    item !== null &&
+                    typeof item.name === 'string' &&
+                    typeof item.required === 'number' &&
+                    typeof item.location === 'string'
+                )
+            );
+        }
+        
+        // --- RENDER FUNCTIONS ---
+        function renderAll() {
+            if (currentDrawerIndex >= trolleyData.length) currentDrawerIndex = 0;
+            if (trolleyData[currentDrawerIndex] && currentItemIndex >= trolleyData[currentDrawerIndex].items.length) {
+                currentItemIndex = 0;
+            }
+            switch(activeView) {
+                case 'counting': renderCountingView(); break;
+                case 'list': renderListView(); break;
+                case 'edit': renderEditView(); break;
+            }
+            updateTabs();
+        }
+        
+        function renderCountingView() {
+            if (!trolleyData || trolleyData.length === 0 || !trolleyData[currentDrawerIndex] || trolleyData[currentDrawerIndex].items.length === 0) {
+                countingView.innerHTML = `<div class="text-center text-gray-500 p-8">No items to count. Add drawers and items in the 'Edit' tab.</div>`;
+                return;
+            }
+            const drawer = trolleyData[currentDrawerIndex];
+            const item = drawer.items[currentItemIndex];
+            countingView.innerHTML = `
+                <div class="w-full">
+                    <p class="text-xl md:text-2xl font-semibold text-gray-500 dark:text-gray-400">${drawer.drawerName}</p>
+                    <p class="text-sm text-gray-400 dark:text-gray-500">Item ${currentItemIndex + 1} of ${drawer.items.length}</p>
+                </div>
+                <div id="count-display" class="flex-grow w-full flex flex-col justify-center items-center bg-green-300 dark:bg-green-700 rounded-2xl my-4 transition-colors duration-300 cursor-pointer">
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white px-2">${item.name}</h1>
+                    <p class="text-9xl font-black text-gray-900 dark:text-white">${item.current}</p>
+                    <p class="text-xl font-medium text-gray-700 dark:text-gray-200">Required: ${item.required}</p>
+                </div>
+                <div class="w-full text-gray-500 dark:text-gray-400 flex flex-col items-center space-y-3">
+                    <p>Tap count to decrease by pack size. Swipe for next/prev.</p>
+                    <div class="flex items-center space-x-2">
+                         <button id="reset-item-button" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-2 px-4 rounded-lg text-sm">Reset Item</button>
+                         <div id="pack-size-editor" class="flex items-center space-x-2">
+                            <label for="pack-size-input" class="font-semibold">Pack Size:</label>
+                            <input type="number" id="pack-size-input" value="${item.packSize || 1}" min="1" class="edit-input w-20 text-center">
+                         </div>
+                    </div>
+                </div>`;
+            const countDisplay = document.getElementById('count-display');
+            if (item.current < item.required) {
+                countDisplay.classList.remove('bg-green-300', 'dark:bg-green-700');
+                countDisplay.classList.add('needs-restock');
+            }
+        }
+
+        function renderListView() {
+            let listHtml = '';
+            let itemsFound = false;
+            trolleyData.forEach(drawer => {
+                const itemsToRestock = drawer.items.filter(item => item.current < item.required);
+                if (itemsToRestock.length > 0) {
+                    itemsFound = true;
+                    listHtml += `<h2 class="text-xl font-bold mt-4 mb-2 text-gray-800 dark:text-gray-200">${drawer.drawerName}</h2><ul class="space-y-3">`;
+                    itemsToRestock.forEach(item => {
+                        const needed = item.required - item.current;
+                        listHtml += `<li class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow"><div class="flex justify-between items-center"><span class="text-lg font-semibold text-gray-900 dark:text-white">${item.name}</span><span class="bg-red-500 text-white text-lg font-bold py-1 px-3 rounded-full">Need ${needed}</span></div><p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Location: ${item.location}</p></li>`;
+                    });
+                    listHtml += '</ul>';
+                }
+            });
+            if (!itemsFound) {
+                listView.innerHTML = `<div class="text-center py-16"><h2 class="text-3xl font-bold text-green-500">All Stocked!</h2><p class="text-gray-500 dark:text-gray-400 mt-2">No items require restocking.</p></div>`;
+            } else {
+                const header = `<div class="mb-4"><button id="copy-list-btn" class="w-full p-3 bg-indigo-500 text-white font-bold rounded-md hover:bg-indigo-600">Copy List for Sharing</button></div>`;
+                listView.innerHTML = header + listHtml;
+            }
+        }
+
+        function renderEditView() {
+            let editHtml = `<div class="space-y-6">`;
+            trolleyData.forEach((drawer, drawerIndex) => {
+                editHtml += `<div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md space-y-4"><div class="flex items-center space-x-2"><input type="text" value="${drawer.drawerName}" data-drawer-index="${drawerIndex}" class="edit-input font-bold text-lg flex-grow" placeholder="Drawer Name"><button class="delete-drawer-btn p-2 bg-red-600 text-white rounded-md" data-drawer-index="${drawerIndex}">X</button></div><div class="space-y-3 pl-4 border-l-4 border-gray-300 dark:border-gray-500">`;
+                drawer.items.forEach((item, itemIndex) => {
+                    editHtml += `<div class="item-edit-container space-y-2 bg-white dark:bg-gray-800 p-3 rounded-md"><input type="text" value="${item.name}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="name" class="edit-input flex-grow" placeholder="Item Name"><div class="flex space-x-2 mt-2"><input type="number" value="${item.required}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="required" class="edit-input w-1/3" placeholder="Required"><input type="number" value="${item.packSize || 1}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="packSize" class="edit-input w-1/3" placeholder="Pack Size"><input type="text" value="${item.location}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="location" class="edit-input w-1/3" placeholder="Location"></div><button class="delete-item-btn p-1 bg-red-500 text-white rounded-md text-xs w-full mt-1" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}">Delete Item</button></div>`;
+                });
+                editHtml += `</div><button class="add-item-btn w-full mt-2 p-2 bg-blue-500 text-white rounded-md" data-drawer-index="${drawerIndex}">+ Add Item</button></div>`;
+            });
+            editHtml += `</div><div class="mt-8 space-y-4 border-t-2 pt-4"><h3 class="text-lg font-bold text-center text-gray-600 dark:text-gray-300">Manage Data</h3><button id="import-btn" class="w-full p-3 bg-teal-500 text-white font-bold rounded-md">Import from File (JSON)</button><button id="export-btn" class="w-full p-3 bg-purple-500 text-white font-bold rounded-md">Export to File (JSON)</button><button id="factory-reset-btn" class="w-full p-2 bg-gray-600 text-white rounded-md mt-4">Reset to Factory Defaults</button></div>`;
+            editView.innerHTML = editHtml;
+        }
+
+        function switchView(view) {
+            activeView = view;
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+            const activeViewElement = document.getElementById(`${view}-view`);
+            if (activeViewElement) activeViewElement.classList.add('active');
+            footer.style.display = (view === 'edit') ? 'none' : 'block';
+            renderAll();
+        }
+        
+        function updateTabs() {
+            document.querySelectorAll('.tab-button').forEach(button => {
+                const isBtnActive = button.dataset.view === activeView;
+                button.classList.toggle('bg-blue-500', isBtnActive);
+                button.classList.toggle('text-white', isBtnActive);
+                button.classList.toggle('bg-gray-200', !isBtnActive);
+                button.classList.toggle('dark:bg-gray-600', !isBtnActive);
+            });
+        }
+        
+        // --- EVENT LISTENERS ---
+        document.querySelector('nav').addEventListener('click', e => e.target.matches('.tab-button') && switchView(e.target.dataset.view));
+        footer.addEventListener('click', e => {
+            if (e.target.id === 'reset-counts-button' && confirm("Reset all counts?")) {
+                trolleyData.forEach(d => d.items.forEach(i => i.current = i.required));
+                saveData();
+                renderAll();
+            }
+        });
+        countingView.addEventListener('click', e => {
+            if (!trolleyData[currentDrawerIndex]?.items[currentItemIndex]) return;
+            const item = trolleyData[currentDrawerIndex].items[currentItemIndex];
+            if (e.target.closest('#reset-item-button')) item.current = item.required;
+            else if (e.target.closest('#count-display')) item.current = Math.max(0, item.current - (parseInt(item.packSize) || 1));
+            saveData();
+            renderCountingView();
+        });
+        countingView.addEventListener('change', e => {
+            if (e.target.id === 'pack-size-input') {
+                trolleyData[currentDrawerIndex].items[currentItemIndex].packSize = parseInt(e.target.value) || 1;
+                saveData();
+            }
+        });
+        listView.addEventListener('click', e => {
+            if (e.target.id === 'copy-list-btn') {
+                let textToCopy = "Anaesthetic Trolley Restock List:\n";
+                trolleyData.forEach(drawer => {
+                    const itemsToRestock = drawer.items.filter(item => item.current < item.required);
+                    if (itemsToRestock.length > 0) {
+                        textToCopy += `\n--- ${drawer.drawerName} ---\n`;
+                        itemsToRestock.forEach(item => { textToCopy += `- ${item.name} (Need ${item.required - item.current}) | Loc: ${item.location}\n`; });
+                    }
+                });
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    e.target.textContent = 'Copied!';
+                    e.target.classList.add('bg-green-500');
+                    setTimeout(() => { e.target.textContent = 'Copy List for Sharing'; e.target.classList.remove('bg-green-500'); }, 2000);
+                } catch (err) { console.error('Copy failed', err); }
+                document.body.removeChild(textArea);
+            }
+        });
+        editView.addEventListener('click', e => {
+            const target = e.target;
+            if (target.id === 'add-drawer-btn') trolleyData.push({ drawerName: "New Drawer", items: [] });
+            else if (target.matches('.add-item-btn')) trolleyData[target.dataset.drawerIndex].items.push({ name: "New Item", required: 1, current: 1, location: "N/A", packSize: 1 });
+            else if (target.matches('.delete-drawer-btn') && confirm("Delete drawer?")) trolleyData.splice(target.dataset.drawerIndex, 1);
+            else if (target.matches('.delete-item-btn') && confirm("Delete item?")) trolleyData[target.dataset.drawerIndex].items.splice(target.dataset.itemIndex, 1);
+            else if (target.id === 'factory-reset-btn') { resetToFactoryDefaults(); return; }
+            else if (target.id === 'import-btn') importFileInput.click();
+            else if (target.id === 'export-btn') exportDataToJson();
+            else return; // Do not re-render if no action taken
+            saveData();
+            renderEditView();
+        });
+        editView.addEventListener('change', e => {
+            const target = e.target;
+            if (target.matches('.edit-input')) {
+                const { drawerIndex, itemIndex, field } = target.dataset;
+                const value = (field === 'required' || field === 'packSize') ? parseInt(target.value) || 1 : target.value;
+                if (itemIndex !== undefined) trolleyData[drawerIndex].items[itemIndex][field] = value;
+                else trolleyData[drawerIndex].drawerName = value;
+                saveData();
+            }
+        });
+        importFileInput.addEventListener('change', handleFileImport);
+
+        // --- IMPORT/EXPORT LOGIC ---
+        function exportDataToJson() {
+            const jsonString = JSON.stringify(trolleyData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `trolley-backup-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (isTrolleyDataValid(importedData)) {
+                        if (confirm("Replace current trolley data with the contents of this file?")) {
+                            trolleyData = importedData;
+                            saveData();
+                            loadData(); // Re-load to ensure defaults are applied
+                            renderAll();
+                            alert("Data imported successfully!");
+                        }
+                    } else {
+                        alert("Import failed: Invalid file format or content.");
+                    }
+                } catch (error) {
+                    alert("Import failed: Could not parse the file. Please ensure it is a valid JSON file.");
+                    console.error("JSON Parse Error:", error);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset file input
+        }
+
+        // --- SWIPE DETECTION ---
+        let touchStartX = 0, touchStartY = 0;
+        appContainer.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, { passive: true });
+        appContainer.addEventListener('touchend', e => {
+            if (activeView !== 'counting' || !trolleyData || trolleyData.length === 0) return;
+            const deltaX = e.changedTouches[0].screenX - touchStartX;
+            const deltaY = e.changedTouches[0].screenY - touchStartY;
+            if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                const items = trolleyData[currentDrawerIndex]?.items || [];
+                if (items.length > 0) {
+                    currentItemIndex += deltaX < 0 ? 1 : -1;
+                    if (currentItemIndex >= items.length) currentItemIndex = 0;
+                    if (currentItemIndex < 0) currentItemIndex = items.length - 1;
+                }
+            } else if (Math.abs(deltaY) > 50) {
+                currentDrawerIndex += deltaY < 0 ? 1 : -1;
+                if (currentDrawerIndex >= trolleyData.length) currentDrawerIndex = 0;
+                if (currentDrawerIndex < 0) currentDrawerIndex = trolleyData.length - 1;
+                currentItemIndex = 0;
+            }
+            renderCountingView();
+        });
+
+        // --- INITIALIZATION ---
+        loadData();
+        switchView('counting');
+    </script>
+</body>
+</html>
