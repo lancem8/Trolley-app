@@ -16,9 +16,27 @@
             0%, 100% { background-color: #fca5a5; } /* red-300 */
             50% { background-color: #ef4444; } /* red-500 */
         }
-        .edit-input { @apply w-full p-2 border border-gray-300 rounded-md bg-white dark:bg-gray-600 dark:border-gray-500 dark:text-white; }
+        .edit-input, .edit-select { @apply w-full p-2 border border-gray-300 rounded-md bg-white dark:bg-gray-600 dark:border-gray-500 dark:text-white; }
         .view-container { display: none; }
         .view-container.active { display: flex; }
+        /* For the settings overlay */
+        #settings-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+        /* Style for the collapsible details/summary */
+        details > summary {
+            list-style: none;
+            cursor: pointer;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+        details summary .arrow {
+            transition: transform 0.2s;
+        }
+        details[open] summary .arrow {
+            transform: rotate(90deg);
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 h-full flex items-center justify-center">
@@ -28,9 +46,8 @@
         <!-- Header with Tabs -->
         <header class="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
             <nav class="flex justify-around">
-                <button data-view="counting" class="tab-button px-4 py-3 text-base md:text-lg font-bold w-1/3">Counting</button>
-                <button data-view="list" class="tab-button px-4 py-3 text-base md:text-lg font-bold w-1/3">Restock List</button>
-                <button data-view="edit" class="tab-button px-4 py-3 text-base md:text-lg font-bold w-1/3">Edit</button>
+                <button data-view="counting" class="tab-button px-4 py-3 text-base md:text-lg font-bold w-1/2">Counting</button>
+                <button data-view="list" class="tab-button px-4 py-3 text-base md:text-lg font-bold w-1/2">Restock List</button>
             </nav>
         </header>
 
@@ -38,29 +55,50 @@
         <main id="app-container" class="flex-grow flex flex-col touch-area relative overflow-y-auto">
             <div id="counting-view" class="view-container flex-grow flex-col justify-between items-center text-center p-6"></div>
             <div id="list-view" class="view-container flex-grow p-4 overflow-y-auto flex-col"></div>
-            <div id="edit-view" class="view-container flex-grow p-4 overflow-y-auto flex-col"></div>
         </main>
         
-        <footer id="footer" class="bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 p-3 text-center">
-            <button id="reset-counts-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg w-full md:w-auto">
+        <footer id="footer" class="bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 p-3 flex items-center justify-between space-x-4">
+            <button id="reset-counts-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg flex-grow">
                 Reset All Counts
             </button>
+            <button id="settings-button" class="p-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
         </footer>
-
-        <!-- Hidden file input for JSON import -->
-        <input type="file" id="import-file-input" class="hidden" accept="application/json">
     </div>
+
+    <!-- Settings Overlay -->
+    <div id="settings-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden justify-center items-center p-4">
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md h-full md:h-auto md:max-h-[90vh] rounded-lg shadow-2xl flex flex-col">
+            <header class="flex items-center justify-between p-4 border-b dark:border-gray-600">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Settings</h2>
+                <button id="close-settings-button" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </header>
+            <div id="edit-view" class="flex-grow p-4 overflow-y-auto">
+                <!-- Edit content will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="import-file-input" class="hidden" accept="application/json">
 
     <script>
         // --- DEFAULT DATA ---
-        const defaultTrolleyData = [
-            { drawerName: "Drawer 1: Airway", items: [ { name: "Laryngoscope Blade (Sz 3)", required: 2, location: "Clean Utility - Shelf A1", packSize: 1 } ]},
-            { drawerName: "Drawer 2: Needles & Syringes", items: [ { name: "Needles (21G)", required: 50, location: "Stores - Bin B3", packSize: 5 }, { name: "Syringes (10ml)", required: 20, location: "Stores - Bin C5", packSize: 1 } ]},
-            { drawerName: "Drawer 3: Medications", items: [ { name: "Propofol 1%", required: 5, location: "Pharmacy - Fridge", packSize: 1 } ]}
-        ];
+        const defaultAppData = {
+            trolleyData: [
+                { drawerName: "Drawer 1: Airway", items: [ { name: "Laryngoscope Blade (Sz 3)", required: 2, location: "Clean Utility - Shelf A1", packSize: 1 } ]},
+                { drawerName: "Drawer 2: Needles & Syringes", items: [ { name: "Needles (21G)", required: 50, location: "Stores - Bin B3", packSize: 5 } ]},
+            ],
+            locations: [ "Clean Utility - Shelf A1", "Stores - Bin B3", "Pharmacy - Fridge", "Anaesthetic Bay" ]
+        };
 
         // --- STATE MANAGEMENT ---
-        let trolleyData = [];
+        let appData = {};
         let currentDrawerIndex = 0;
         let currentItemIndex = 0;
         let activeView = 'counting';
@@ -72,93 +110,51 @@
         const editView = document.getElementById('edit-view');
         const footer = document.getElementById('footer');
         const importFileInput = document.getElementById('import-file-input');
+        const settingsOverlay = document.getElementById('settings-overlay');
+        const settingsButton = document.getElementById('settings-button');
+        const closeSettingsButton = document.getElementById('close-settings-button');
 
         // --- DATA PERSISTENCE & VALIDATION ---
-        function saveData() {
-            localStorage.setItem('trolleyData', JSON.stringify(trolleyData));
-        }
-
+        function saveData() { localStorage.setItem('appData', JSON.stringify(appData)); }
         function loadData() {
-            const savedData = localStorage.getItem('trolleyData');
+            const savedData = localStorage.getItem('appData');
             try {
-                const dataToLoad = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultTrolleyData));
-                if (isTrolleyDataValid(dataToLoad)) {
-                    trolleyData = dataToLoad;
-                    // Ensure defaults for any missing fields after loading
-                    trolleyData.forEach(drawer => {
+                const dataToLoad = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultAppData));
+                if (dataToLoad && typeof dataToLoad === 'object' && Array.isArray(dataToLoad.trolleyData) && Array.isArray(dataToLoad.locations)) {
+                    appData = dataToLoad;
+                    appData.trolleyData.forEach(drawer => {
                         drawer.items.forEach(item => {
                             if (item.current === undefined) item.current = item.required;
                             if (item.packSize === undefined) item.packSize = 1;
                         });
                     });
-                } else {
-                    throw new Error("Invalid data structure in localStorage.");
-                }
+                } else { throw new Error("Invalid data structure."); }
             } catch (error) {
-                console.error("Failed to load or parse data, resetting to defaults.", error);
-                trolleyData = JSON.parse(JSON.stringify(defaultTrolleyData));
-                saveData(); // Save the default structure
+                console.error("Failed to load data, resetting to defaults.", error);
+                appData = JSON.parse(JSON.stringify(defaultAppData));
+                saveData();
             }
-        }
-
-        function isTrolleyDataValid(data) {
-            if (!Array.isArray(data)) return false;
-            return data.every(drawer => 
-                typeof drawer === 'object' &&
-                drawer !== null &&
-                typeof drawer.drawerName === 'string' &&
-                Array.isArray(drawer.items) &&
-                drawer.items.every(item => 
-                    typeof item === 'object' &&
-                    item !== null &&
-                    typeof item.name === 'string' &&
-                    typeof item.required === 'number' &&
-                    typeof item.location === 'string'
-                )
-            );
         }
         
         // --- RENDER FUNCTIONS ---
         function renderAll() {
-            if (currentDrawerIndex >= trolleyData.length) currentDrawerIndex = 0;
-            if (trolleyData[currentDrawerIndex] && currentItemIndex >= trolleyData[currentDrawerIndex].items.length) {
+            if (currentDrawerIndex >= appData.trolleyData.length) currentDrawerIndex = 0;
+            if (appData.trolleyData[currentDrawerIndex] && currentItemIndex >= appData.trolleyData[currentDrawerIndex].items.length) {
                 currentItemIndex = 0;
             }
-            switch(activeView) {
-                case 'counting': renderCountingView(); break;
-                case 'list': renderListView(); break;
-                case 'edit': renderEditView(); break;
-            }
+            if (activeView === 'counting') renderCountingView();
+            else if (activeView === 'list') renderListView();
             updateTabs();
         }
         
         function renderCountingView() {
-            if (!trolleyData || trolleyData.length === 0 || !trolleyData[currentDrawerIndex] || trolleyData[currentDrawerIndex].items.length === 0) {
-                countingView.innerHTML = `<div class="text-center text-gray-500 p-8">No items to count. Add drawers and items in the 'Edit' tab.</div>`;
+            if (!appData.trolleyData || appData.trolleyData.length === 0 || !appData.trolleyData[currentDrawerIndex] || appData.trolleyData[currentDrawerIndex].items.length === 0) {
+                countingView.innerHTML = `<div class="text-center text-gray-500 p-8">No items to count. Add drawers and items in Settings.</div>`;
                 return;
             }
-            const drawer = trolleyData[currentDrawerIndex];
+            const drawer = appData.trolleyData[currentDrawerIndex];
             const item = drawer.items[currentItemIndex];
-            countingView.innerHTML = `
-                <div class="w-full">
-                    <p class="text-xl md:text-2xl font-semibold text-gray-500 dark:text-gray-400">${drawer.drawerName}</p>
-                    <p class="text-sm text-gray-400 dark:text-gray-500">Item ${currentItemIndex + 1} of ${drawer.items.length}</p>
-                </div>
-                <div id="count-display" class="flex-grow w-full flex flex-col justify-center items-center bg-green-300 dark:bg-green-700 rounded-2xl my-4 transition-colors duration-300 cursor-pointer">
-                    <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white px-2">${item.name}</h1>
-                    <p class="text-9xl font-black text-gray-900 dark:text-white">${item.current}</p>
-                    <p class="text-xl font-medium text-gray-700 dark:text-gray-200">Required: ${item.required}</p>
-                </div>
-                <div class="w-full text-gray-500 dark:text-gray-400 flex flex-col items-center space-y-3">
-                    <p>Tap count to decrease by pack size. Swipe for next/prev.</p>
-                    <div class="flex items-center space-x-2">
-                         <button id="reset-item-button" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-2 px-4 rounded-lg text-sm">Reset Item</button>
-                         <div id="pack-size-editor" class="flex items-center space-x-2">
-                            <label for="pack-size-input" class="font-semibold">Pack Size:</label>
-                            <input type="number" id="pack-size-input" value="${item.packSize || 1}" min="1" class="edit-input w-20 text-center">
-                         </div>
-                    </div>
-                </div>`;
+            countingView.innerHTML = `<div class="w-full"><p class="text-xl md:text-2xl font-semibold text-gray-500 dark:text-gray-400">${drawer.drawerName}</p><p class="text-sm text-gray-400 dark:text-gray-500">Item ${currentItemIndex + 1} of ${drawer.items.length}</p></div><div id="count-display" class="flex-grow w-full flex flex-col justify-center items-center bg-green-300 dark:bg-green-700 rounded-2xl my-4 transition-colors duration-300 cursor-pointer"><h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white px-2">${item.name}</h1><p class="text-9xl font-black text-gray-900 dark:text-white">${item.current}</p><p class="text-xl font-medium text-gray-700 dark:text-gray-200">Required: ${item.required}</p></div><div class="w-full text-gray-500 dark:text-gray-400 flex flex-col items-center space-y-3"><p>Tap count to decrease. Swipe for next/prev.</p><div class="flex items-center space-x-2"><button id="reset-item-button" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-2 px-4 rounded-lg text-sm">Reset Item</button><div id="pack-size-editor" class="flex items-center space-x-2"><label for="pack-size-input" class="font-semibold">Pack Size:</label><input type="number" id="pack-size-input" value="${item.packSize || 1}" min="1" class="edit-input w-20 text-center"></div></div></div>`;
             const countDisplay = document.getElementById('count-display');
             if (item.current < item.required) {
                 countDisplay.classList.remove('bg-green-300', 'dark:bg-green-700');
@@ -167,47 +163,80 @@
         }
 
         function renderListView() {
-            let listHtml = '';
+            const itemsByLocation = {};
             let itemsFound = false;
-            trolleyData.forEach(drawer => {
-                const itemsToRestock = drawer.items.filter(item => item.current < item.required);
-                if (itemsToRestock.length > 0) {
-                    itemsFound = true;
-                    listHtml += `<h2 class="text-xl font-bold mt-4 mb-2 text-gray-800 dark:text-gray-200">${drawer.drawerName}</h2><ul class="space-y-3">`;
-                    itemsToRestock.forEach(item => {
-                        const needed = item.required - item.current;
-                        listHtml += `<li class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow"><div class="flex justify-between items-center"><span class="text-lg font-semibold text-gray-900 dark:text-white">${item.name}</span><span class="bg-red-500 text-white text-lg font-bold py-1 px-3 rounded-full">Need ${needed}</span></div><p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Location: ${item.location}</p></li>`;
-                    });
-                    listHtml += '</ul>';
-                }
+
+            // Group items that need restocking by location
+            appData.trolleyData.forEach(drawer => {
+                drawer.items.forEach(item => {
+                    if (item.current < item.required) {
+                        itemsFound = true;
+                        if (!itemsByLocation[item.location]) {
+                            itemsByLocation[item.location] = [];
+                        }
+                        itemsByLocation[item.location].push({
+                            name: item.name,
+                            needed: item.required - item.current
+                        });
+                    }
+                });
             });
+
             if (!itemsFound) {
                 listView.innerHTML = `<div class="text-center py-16"><h2 class="text-3xl font-bold text-green-500">All Stocked!</h2><p class="text-gray-500 dark:text-gray-400 mt-2">No items require restocking.</p></div>`;
-            } else {
-                const header = `<div class="mb-4"><button id="copy-list-btn" class="w-full p-3 bg-indigo-500 text-white font-bold rounded-md hover:bg-indigo-600">Copy List for Sharing</button></div>`;
-                listView.innerHTML = header + listHtml;
+                return;
             }
+
+            let listHtml = `<div class="mb-4"><button id="copy-list-btn" class="w-full p-3 bg-indigo-500 text-white font-bold rounded-md hover:bg-indigo-600">Copy List for Sharing</button></div>`;
+            
+            // Get sorted locations
+            const sortedLocations = Object.keys(itemsByLocation).sort();
+
+            // Build HTML from sorted locations
+            sortedLocations.forEach(location => {
+                listHtml += `<h2 class="text-xl font-bold mt-4 mb-2 text-gray-800 dark:text-gray-200">${location}</h2><ul class="space-y-3">`;
+                itemsByLocation[location].forEach(item => {
+                    listHtml += `<li class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow"><div class="flex justify-between items-center"><span class="text-lg font-semibold text-gray-900 dark:text-white">${item.name}</span><span class="bg-red-500 text-white text-lg font-bold py-1 px-3 rounded-full">Need ${item.needed}</span></div></li>`;
+                });
+                listHtml += '</ul>';
+            });
+            
+            listView.innerHTML = listHtml;
         }
 
         function renderEditView() {
-            let editHtml = `<div class="space-y-6">`;
-            trolleyData.forEach((drawer, drawerIndex) => {
-                editHtml += `<div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md space-y-4"><div class="flex items-center space-x-2"><input type="text" value="${drawer.drawerName}" data-drawer-index="${drawerIndex}" class="edit-input font-bold text-lg flex-grow" placeholder="Drawer Name"><button class="delete-drawer-btn p-2 bg-red-600 text-white rounded-md" data-drawer-index="${drawerIndex}">X</button></div><div class="space-y-3 pl-4 border-l-4 border-gray-300 dark:border-gray-500">`;
-                drawer.items.forEach((item, itemIndex) => {
-                    editHtml += `<div class="item-edit-container space-y-2 bg-white dark:bg-gray-800 p-3 rounded-md"><input type="text" value="${item.name}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="name" class="edit-input flex-grow" placeholder="Item Name"><div class="flex space-x-2 mt-2"><input type="number" value="${item.required}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="required" class="edit-input w-1/3" placeholder="Required"><input type="number" value="${item.packSize || 1}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="packSize" class="edit-input w-1/3" placeholder="Pack Size"><input type="text" value="${item.location}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="location" class="edit-input w-1/3" placeholder="Location"></div><button class="delete-item-btn p-1 bg-red-500 text-white rounded-md text-xs w-full mt-1" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}">Delete Item</button></div>`;
-                });
-                editHtml += `</div><button class="add-item-btn w-full mt-2 p-2 bg-blue-500 text-white rounded-md" data-drawer-index="${drawerIndex}">+ Add Item</button></div>`;
+            let locationOptions = appData.locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+            let editHtml = `<div class="space-y-6">
+                <details class="bg-gray-200 dark:bg-gray-900 p-4 rounded-lg shadow-md" open>
+                    <summary class="flex items-center justify-between font-bold text-lg text-gray-700 dark:text-gray-200">Manage Locations <span class="arrow text-gray-500">&#9654;</span></summary>
+                    <div class="mt-4 space-y-2">`;
+            appData.locations.forEach((loc, index) => {
+                editHtml += `<div class="flex items-center space-x-2"><input type="text" class="edit-input flex-grow" value="${loc}" data-location-index="${index}"><button class="delete-location-btn p-2 bg-red-600 text-white rounded-md" data-location-index="${index}">X</button></div>`;
             });
-            editHtml += `</div><div class="mt-8 space-y-4 border-t-2 pt-4"><h3 class="text-lg font-bold text-center text-gray-600 dark:text-gray-300">Manage Data</h3><button id="import-btn" class="w-full p-3 bg-teal-500 text-white font-bold rounded-md">Import from File (JSON)</button><button id="export-btn" class="w-full p-3 bg-purple-500 text-white font-bold rounded-md">Export to File (JSON)</button><button id="factory-reset-btn" class="w-full p-2 bg-gray-600 text-white rounded-md mt-4">Reset to Factory Defaults</button></div>`;
+            editHtml += `</div><div class="flex items-center space-x-2 pt-4"><input type="text" id="new-location-input" class="edit-input flex-grow" placeholder="New location name..."><button id="add-location-btn" class="p-2 bg-green-500 text-white rounded-md">Add</button></div></details>`;
+            
+            appData.trolleyData.forEach((drawer, drawerIndex) => {
+                editHtml += `<details class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-md"><summary class="flex items-center justify-between font-bold text-lg"><div class="flex-grow mr-2"><input type="text" value="${drawer.drawerName}" data-drawer-index="${drawerIndex}" class="edit-input font-bold text-lg" placeholder="Drawer Name"></div><button class="delete-drawer-btn p-2 bg-red-600 text-white rounded-md" data-drawer-index="${drawerIndex}">X</button><span class="arrow text-gray-500 ml-2">&#9654;</span></summary><div class="mt-4 space-y-3 pl-4 border-l-4 border-gray-300 dark:border-gray-500">`;
+                drawer.items.forEach((item, itemIndex) => {
+                    editHtml += `<div class="item-edit-container space-y-2 bg-white dark:bg-gray-800 p-3 rounded-md"><input type="text" value="${item.name}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="name" class="edit-input flex-grow" placeholder="Item Name"><div class="flex space-x-2 mt-2"><input type="number" value="${item.required}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="required" class="edit-input w-1/3" placeholder="Required"><input type="number" value="${item.packSize || 1}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="packSize" class="edit-input w-1/3" placeholder="Pack Size"><select data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="location" class="edit-select w-1/3">${locationOptions}</select></div><button class="delete-item-btn p-1 bg-red-500 text-white rounded-md text-xs w-full mt-1" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}">Delete Item</button></div>`;
+                });
+                editHtml += `</div><button class="add-item-btn w-full mt-2 p-2 bg-blue-500 text-white rounded-md" data-drawer-index="${drawerIndex}">+ Add Item</button></details>`;
+            });
+            editHtml += `</div><div class="mt-8 space-y-4 border-t-2 pt-4"><h3 class="text-lg font-bold text-center text-gray-600 dark:text-gray-300">Manage Trolley Data</h3><button id="add-drawer-btn" class="w-full p-3 bg-green-600 text-white font-bold rounded-md">+ Add New Drawer</button><button id="import-btn" class="w-full p-3 bg-teal-500 text-white font-bold rounded-md">Import from File (JSON)</button><button id="export-btn" class="w-full p-3 bg-purple-500 text-white font-bold rounded-md">Export to File (JSON)</button></div>`;
             editView.innerHTML = editHtml;
+            
+            appData.trolleyData.forEach((drawer, drawerIndex) => {
+                drawer.items.forEach((item, itemIndex) => {
+                    const select = editView.querySelector(`select[data-drawer-index='${drawerIndex}'][data-item-index='${itemIndex}']`);
+                    if(select) select.value = item.location;
+                });
+            });
         }
 
         function switchView(view) {
             activeView = view;
             document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
-            const activeViewElement = document.getElementById(`${view}-view`);
-            if (activeViewElement) activeViewElement.classList.add('active');
-            footer.style.display = (view === 'edit') ? 'none' : 'block';
+            document.getElementById(`${view}-view`).classList.add('active');
             renderAll();
         }
         
@@ -224,15 +253,25 @@
         // --- EVENT LISTENERS ---
         document.querySelector('nav').addEventListener('click', e => e.target.matches('.tab-button') && switchView(e.target.dataset.view));
         footer.addEventListener('click', e => {
-            if (e.target.id === 'reset-counts-button' && confirm("Reset all counts?")) {
-                trolleyData.forEach(d => d.items.forEach(i => i.current = i.required));
+            if (e.target.closest('#reset-counts-button') && confirm("Reset all counts?")) {
+                appData.trolleyData.forEach(d => d.items.forEach(i => i.current = i.required));
                 saveData();
                 renderAll();
             }
         });
+        settingsButton.addEventListener('click', () => {
+            renderEditView();
+            settingsOverlay.classList.remove('hidden');
+            settingsOverlay.classList.add('flex');
+        });
+        closeSettingsButton.addEventListener('click', () => {
+            settingsOverlay.classList.add('hidden');
+            settingsOverlay.classList.remove('flex');
+            renderAll();
+        });
         countingView.addEventListener('click', e => {
-            if (!trolleyData[currentDrawerIndex]?.items[currentItemIndex]) return;
-            const item = trolleyData[currentDrawerIndex].items[currentItemIndex];
+            if (!appData.trolleyData[currentDrawerIndex]?.items[currentItemIndex]) return;
+            const item = appData.trolleyData[currentDrawerIndex].items[currentItemIndex];
             if (e.target.closest('#reset-item-button')) item.current = item.required;
             else if (e.target.closest('#count-display')) item.current = Math.max(0, item.current - (parseInt(item.packSize) || 1));
             saveData();
@@ -240,19 +279,26 @@
         });
         countingView.addEventListener('change', e => {
             if (e.target.id === 'pack-size-input') {
-                trolleyData[currentDrawerIndex].items[currentItemIndex].packSize = parseInt(e.target.value) || 1;
+                appData.trolleyData[currentDrawerIndex].items[currentItemIndex].packSize = parseInt(e.target.value) || 1;
                 saveData();
             }
         });
         listView.addEventListener('click', e => {
             if (e.target.id === 'copy-list-btn') {
                 let textToCopy = "Anaesthetic Trolley Restock List:\n";
-                trolleyData.forEach(drawer => {
-                    const itemsToRestock = drawer.items.filter(item => item.current < item.required);
-                    if (itemsToRestock.length > 0) {
-                        textToCopy += `\n--- ${drawer.drawerName} ---\n`;
-                        itemsToRestock.forEach(item => { textToCopy += `- ${item.name} (Need ${item.required - item.current}) | Loc: ${item.location}\n`; });
-                    }
+                const itemsByLocation = {};
+                appData.trolleyData.forEach(drawer => {
+                    drawer.items.forEach(item => {
+                        if (item.current < item.required) {
+                            if (!itemsByLocation[item.location]) itemsByLocation[item.location] = [];
+                            itemsByLocation[item.location].push({ name: item.name, needed: item.required - item.current });
+                        }
+                    });
+                });
+                const sortedLocations = Object.keys(itemsByLocation).sort();
+                sortedLocations.forEach(location => {
+                    textToCopy += `\n--- ${location} ---\n`;
+                    itemsByLocation[location].forEach(item => { textToCopy += `- ${item.name} (Need ${item.needed})\n`; });
                 });
                 const textArea = document.createElement("textarea");
                 textArea.value = textToCopy;
@@ -269,79 +315,87 @@
         });
         editView.addEventListener('click', e => {
             const target = e.target;
-            if (target.id === 'add-drawer-btn') trolleyData.push({ drawerName: "New Drawer", items: [] });
-            else if (target.matches('.add-item-btn')) trolleyData[target.dataset.drawerIndex].items.push({ name: "New Item", required: 1, current: 1, location: "N/A", packSize: 1 });
-            else if (target.matches('.delete-drawer-btn') && confirm("Delete drawer?")) trolleyData.splice(target.dataset.drawerIndex, 1);
-            else if (target.matches('.delete-item-btn') && confirm("Delete item?")) trolleyData[target.dataset.drawerIndex].items.splice(target.dataset.itemIndex, 1);
-            else if (target.id === 'factory-reset-btn') { resetToFactoryDefaults(); return; }
-            else if (target.id === 'import-btn') importFileInput.click();
-            else if (target.id === 'export-btn') exportDataToJson();
-            else return; // Do not re-render if no action taken
-            saveData();
-            renderEditView();
+            let shouldReRender = true;
+            if (target.id === 'add-drawer-btn') appData.trolleyData.push({ drawerName: "New Drawer", items: [] });
+            else if (target.matches('.add-item-btn')) {
+                e.preventDefault();
+                target.closest('details').open = true;
+                appData.trolleyData[target.dataset.drawerIndex].items.push({ name: "New Item", required: 1, current: 1, location: appData.locations[0] || "", packSize: 1 });
+            }
+            else if (target.matches('.delete-drawer-btn')) {
+                e.preventDefault();
+                if (confirm("Delete drawer?")) appData.trolleyData.splice(target.dataset.drawerIndex, 1);
+            }
+            else if (target.matches('.delete-item-btn')) {
+                if (confirm("Delete item?")) appData.trolleyData[target.dataset.drawerIndex].items.splice(target.dataset.itemIndex, 1);
+            }
+            else if (target.id === 'import-btn') { importFileInput.click(); shouldReRender = false; }
+            else if (target.id === 'export-btn') { exportDataToJson(); shouldReRender = false; }
+            else if (target.matches('.delete-location-btn')) {
+                e.preventDefault();
+                target.closest('details').open = true;
+                const index = parseInt(target.dataset.locationIndex);
+                if (confirm(`Delete location "${appData.locations[index]}"?`)) appData.locations.splice(index, 1);
+            } else if (target.id === 'add-location-btn') {
+                e.preventDefault();
+                target.closest('details').open = true;
+                const newLocInput = document.getElementById('new-location-input');
+                if (newLocInput.value.trim()) appData.locations.push(newLocInput.value.trim());
+                newLocInput.value = "";
+            } else { shouldReRender = false; }
+            
+            if (shouldReRender) {
+                saveData();
+                renderEditView();
+            }
         });
         editView.addEventListener('change', e => {
             const target = e.target;
-            if (target.matches('.edit-input')) {
-                const { drawerIndex, itemIndex, field } = target.dataset;
-                const value = (field === 'required' || field === 'packSize') ? parseInt(target.value) || 1 : target.value;
-                if (itemIndex !== undefined) trolleyData[drawerIndex].items[itemIndex][field] = value;
-                else trolleyData[drawerIndex].drawerName = value;
+            if (target.matches('.edit-input, .edit-select')) {
+                const { drawerIndex, itemIndex, field, locationIndex } = target.dataset;
+                if (locationIndex !== undefined) {
+                    appData.locations[parseInt(locationIndex)] = target.value;
+                } else if (itemIndex !== undefined) {
+                    const value = (field === 'required' || field === 'packSize') ? parseInt(target.value) || 1 : target.value;
+                    appData.trolleyData[drawerIndex].items[itemIndex][field] = value;
+                } else {
+                    appData.trolleyData[drawerIndex].drawerName = target.value;
+                }
                 saveData();
             }
         });
-        importFileInput.addEventListener('change', handleFileImport);
-
-        // --- IMPORT/EXPORT LOGIC ---
-        function exportDataToJson() {
-            const jsonString = JSON.stringify(trolleyData, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `trolley-backup-${new Date().toISOString().slice(0,10)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function handleFileImport(event) {
-            const file = event.target.files[0];
+        importFileInput.addEventListener('change', e => {
+            const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (isTrolleyDataValid(importedData)) {
-                        if (confirm("Replace current trolley data with the contents of this file?")) {
-                            trolleyData = importedData;
+                    if (importedData && typeof importedData === 'object' && Array.isArray(importedData.trolleyData) && Array.isArray(importedData.locations)) {
+                        if (confirm("Replace current data with the contents of this file?")) {
+                            appData = importedData;
                             saveData();
-                            loadData(); // Re-load to ensure defaults are applied
+                            loadData();
                             renderAll();
+                            renderEditView(); // Re-render settings view
                             alert("Data imported successfully!");
                         }
-                    } else {
-                        alert("Import failed: Invalid file format or content.");
-                    }
-                } catch (error) {
-                    alert("Import failed: Could not parse the file. Please ensure it is a valid JSON file.");
-                    console.error("JSON Parse Error:", error);
-                }
+                    } else { alert("Import failed: Invalid file format."); }
+                } catch (error) { alert("Import failed: Could not parse file."); }
             };
             reader.readAsText(file);
-            event.target.value = ''; // Reset file input
-        }
+            e.target.value = '';
+        });
 
         // --- SWIPE DETECTION ---
         let touchStartX = 0, touchStartY = 0;
         appContainer.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, { passive: true });
         appContainer.addEventListener('touchend', e => {
-            if (activeView !== 'counting' || !trolleyData || trolleyData.length === 0) return;
+            if (activeView !== 'counting' || !appData.trolleyData || appData.trolleyData.length === 0) return;
             const deltaX = e.changedTouches[0].screenX - touchStartX;
             const deltaY = e.changedTouches[0].screenY - touchStartY;
             if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
-                const items = trolleyData[currentDrawerIndex]?.items || [];
+                const items = appData.trolleyData[currentDrawerIndex]?.items || [];
                 if (items.length > 0) {
                     currentItemIndex += deltaX < 0 ? 1 : -1;
                     if (currentItemIndex >= items.length) currentItemIndex = 0;
@@ -349,8 +403,8 @@
                 }
             } else if (Math.abs(deltaY) > 50) {
                 currentDrawerIndex += deltaY < 0 ? 1 : -1;
-                if (currentDrawerIndex >= trolleyData.length) currentDrawerIndex = 0;
-                if (currentDrawerIndex < 0) currentDrawerIndex = trolleyData.length - 1;
+                if (currentDrawerIndex >= appData.trolleyData.length) currentDrawerIndex = 0;
+                if (currentDrawerIndex < 0) currentDrawerIndex = appData.trolleyData.length - 1;
                 currentItemIndex = 0;
             }
             renderCountingView();
