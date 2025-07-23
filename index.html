@@ -183,7 +183,7 @@
             sortedLocations.forEach(location => {
                 listHtml += `<h2 class="text-xl font-bold mt-4 mb-2 text-gray-800 dark:text-gray-200">${location}</h2><ul class="space-y-3">`;
                 itemsByLocation[location].forEach(item => {
-                    listHtml += `<li class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow"><div class="flex justify-between items-center"><span class="text-lg font-semibold text-gray-900 dark:text-white">${item.name}</span><span class="bg-red-500 text-white text-lg font-bold py-1 px-3 rounded-full">Need ${item.needed}</span></div></li>`;
+                    listHtml += `<li class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow"><div class="flex justify-between items-center"><span class="text-lg font-semibold text-gray-900 dark:text-white">${item.name}</span><span class="bg-red-500 text-white text-lg font-bold py-1 px-3 rounded-full">${item.needed}</span></div></li>`;
                 });
                 listHtml += '</ul>';
             });
@@ -256,24 +256,13 @@
             renderAll();
         });
         
-        // --- iOS Tap Fix Logic ---
         let touchStartTarget = null;
-        countingView.addEventListener('touchstart', e => {
-             // Record the element where the touch started
-            touchStartTarget = e.target;
-        }, { passive: true });
-
+        countingView.addEventListener('touchstart', e => { touchStartTarget = e.target; }, { passive: true });
         countingView.addEventListener('touchend', e => {
-            // Check if the touch ended on the same element it started on
-            if (touchStartTarget === e.target) {
-                handleTap(e.target);
-            }
+            if (touchStartTarget === e.target) handleTap(e.target);
             touchStartTarget = null;
         });
-        
-        // Keep click for non-touch devices
         countingView.addEventListener('click', e => {
-            // Check if it's a touch device; if so, the touchend listener already handled it.
             if ('ontouchstart' in window) return;
             handleTap(e.target);
         });
@@ -281,17 +270,12 @@
         function handleTap(target) {
             if (!appData.trolleyData[currentDrawerIndex]?.items[currentItemIndex]) return;
             const item = appData.trolleyData[currentDrawerIndex].items[currentItemIndex];
-            if (target.closest('#reset-item-button')) {
-                item.current = item.required;
-            } else if (target.closest('#count-display')) {
-                item.current = Math.max(0, item.current - (parseInt(item.packSize) || 1));
-            } else {
-                return; // Didn't tap a known interactive element
-            }
+            if (target.closest('#reset-item-button')) item.current = item.required;
+            else if (target.closest('#count-display')) item.current = Math.max(0, item.current - (parseInt(item.packSize) || 1));
+            else return;
             saveData();
             renderCountingView();
         }
-        // --- End iOS Tap Fix ---
 
         countingView.addEventListener('change', e => {
             if (e.target.id === 'pack-size-input') {
@@ -314,7 +298,7 @@
                 const sortedLocations = Object.keys(itemsByLocation).sort();
                 sortedLocations.forEach(location => {
                     textToCopy += `\n--- ${location} ---\n`;
-                    itemsByLocation[location].forEach(item => { textToCopy += `- ${item.name} (Need ${item.needed})\n`; });
+                    itemsByLocation[location].forEach(item => { textToCopy += `- ${item.name} (x${item.needed})\n`; });
                 });
                 const textArea = document.createElement("textarea");
                 textArea.value = textToCopy;
@@ -402,6 +386,42 @@
             reader.readAsText(file);
             e.target.value = '';
         });
+
+        // --- IMPORT/EXPORT LOGIC ---
+        function exportDataToJson() {
+            const exportBtn = document.getElementById('export-btn');
+            if (!exportBtn) return;
+            exportBtn.textContent = 'Exporting...';
+            exportBtn.disabled = true;
+
+            try {
+                const jsonString = JSON.stringify(appData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+
+                a.href = url;
+                a.download = `trolley-backup-${new Date().toISOString().slice(0,10)}.json`;
+                
+                document.body.appendChild(a);
+                a.click();
+
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    exportBtn.textContent = 'Export to File (JSON)';
+                    exportBtn.disabled = false;
+                }, 100);
+
+            } catch (error) {
+                console.error("Export failed:", error);
+                exportBtn.textContent = 'Export Failed!';
+                setTimeout(() => {
+                    exportBtn.textContent = 'Export to File (JSON)';
+                    exportBtn.disabled = false;
+                }, 2000);
+            }
+        }
 
         // --- SWIPE DETECTION ---
         let touchStartX = 0, touchStartY = 0;
