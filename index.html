@@ -11,31 +11,17 @@
     <style>
         html, body { overscroll-behavior-y: contain; font-family: 'Inter', sans-serif; }
         .touch-area { touch-action: none; }
-        .count-display.needs-restock { animation: pulse-red 1.5s infinite; }
-        @keyframes pulse-red {
-            0%, 100% { background-color: #fca5a5; } /* red-300 */
-            50% { background-color: #ef4444; } /* red-500 */
-        }
         .edit-input, .edit-select { @apply w-full p-2 border border-gray-300 rounded-md bg-white dark:bg-gray-600 dark:border-gray-500 dark:text-white; }
         .view-container { display: none; }
         .view-container.active { display: flex; }
-        /* For the settings overlay */
-        #settings-overlay {
-            transition: opacity 0.3s ease-in-out;
-        }
-        /* Style for the collapsible details/summary */
-        details > summary {
-            list-style: none;
-            cursor: pointer;
-        }
-        details > summary::-webkit-details-marker {
-            display: none;
-        }
-        details summary .arrow {
-            transition: transform 0.2s;
-        }
-        details[open] summary .arrow {
-            transform: rotate(90deg);
+        #settings-overlay { transition: opacity 0.3s ease-in-out; }
+        details > summary { list-style: none; cursor: pointer; }
+        details > summary::-webkit-details-marker { display: none; }
+        details summary .arrow { transition: transform 0.2s; }
+        details[open] summary .arrow { transform: rotate(90deg); }
+        .list-item-checked .item-text {
+            text-decoration: line-through;
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -62,10 +48,7 @@
                 Reset All Counts
             </button>
             <button id="settings-button" class="p-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </button>
         </footer>
     </div>
@@ -73,15 +56,8 @@
     <!-- Settings Overlay -->
     <div id="settings-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden justify-center items-center p-4">
         <div class="bg-white dark:bg-gray-800 w-full max-w-md h-full md:h-auto md:max-h-[90vh] rounded-lg shadow-2xl flex flex-col">
-            <header class="flex items-center justify-between p-4 border-b dark:border-gray-600">
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Settings</h2>
-                <button id="close-settings-button" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            </header>
-            <div id="edit-view" class="flex-grow p-4 overflow-y-auto">
-                <!-- Edit content will be rendered here -->
-            </div>
+            <header class="flex items-center justify-between p-4 border-b dark:border-gray-600"><h2 class="text-2xl font-bold text-gray-800 dark:text-white">Settings</h2><button id="close-settings-button" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></header>
+            <div id="edit-view" class="flex-grow p-4 overflow-y-auto"></div>
         </div>
     </div>
 
@@ -108,7 +84,6 @@
         const countingView = document.getElementById('counting-view');
         const listView = document.getElementById('list-view');
         const editView = document.getElementById('edit-view');
-        const footer = document.getElementById('footer');
         const importFileInput = document.getElementById('import-file-input');
         const settingsOverlay = document.getElementById('settings-overlay');
         const settingsButton = document.getElementById('settings-button');
@@ -116,7 +91,7 @@
 
         // --- DATA PERSISTENCE & VALIDATION ---
         function saveData() { localStorage.setItem('appData', JSON.stringify(appData)); }
-        function loadData() {
+        function loadDataAndInitializeCounts() {
             const savedData = localStorage.getItem('appData');
             try {
                 const dataToLoad = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultAppData));
@@ -124,7 +99,7 @@
                     appData = dataToLoad;
                     appData.trolleyData.forEach(drawer => {
                         drawer.items.forEach(item => {
-                            if (item.current === undefined) item.current = item.required;
+                            item.current = 0;
                             if (item.packSize === undefined) item.packSize = 1;
                         });
                     });
@@ -132,6 +107,7 @@
             } catch (error) {
                 console.error("Failed to load data, resetting to defaults.", error);
                 appData = JSON.parse(JSON.stringify(defaultAppData));
+                appData.trolleyData.forEach(d => d.items.forEach(i => i.current = 0));
                 saveData();
             }
         }
@@ -154,12 +130,13 @@
             }
             const drawer = appData.trolleyData[currentDrawerIndex];
             const item = drawer.items[currentItemIndex];
-            countingView.innerHTML = `<div class="w-full"><p class="text-xl md:text-2xl font-semibold text-gray-500 dark:text-gray-400">${drawer.drawerName}</p><p class="text-sm text-gray-400 dark:text-gray-500">Item ${currentItemIndex + 1} of ${drawer.items.length}</p></div><div id="count-display" class="flex-grow w-full flex flex-col justify-center items-center bg-green-300 dark:bg-green-700 rounded-2xl my-4 transition-colors duration-300 cursor-pointer"><h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white px-2">${item.name}</h1><p class="text-9xl font-black text-gray-900 dark:text-white">${item.current}</p><p class="text-xl font-medium text-gray-700 dark:text-gray-200">Required: ${item.required}</p></div><div class="w-full text-gray-500 dark:text-gray-400 flex flex-col items-center space-y-3"><p>Tap count to decrease. Swipe for next/prev.</p><div class="flex items-center space-x-2"><button id="reset-item-button" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-2 px-4 rounded-lg text-sm">Reset Item</button><div id="pack-size-editor" class="flex items-center space-x-2"><label for="pack-size-input" class="font-semibold">Pack Size:</label><input type="number" id="pack-size-input" value="${item.packSize || 1}" min="1" class="edit-input w-20 text-center"></div></div></div>`;
-            const countDisplay = document.getElementById('count-display');
-            if (item.current < item.required) {
-                countDisplay.classList.remove('bg-green-300', 'dark:bg-green-700');
-                countDisplay.classList.add('needs-restock');
+            
+            let bgColorClass = 'bg-green-300 dark:bg-green-700'; // Default green
+            if (item.current > 0) {
+                bgColorClass = 'bg-yellow-300 dark:bg-yellow-700'; // Warning color if items are needed
             }
+
+            countingView.innerHTML = `<div class="w-full"><p class="text-xl md:text-2xl font-semibold text-gray-500 dark:text-gray-400">${drawer.drawerName}</p><p class="text-sm text-gray-400 dark:text-gray-500">Item ${currentItemIndex + 1} of ${drawer.items.length}</p></div><div id="count-display" class="flex-grow w-full flex flex-col justify-center items-center ${bgColorClass} rounded-2xl my-4 transition-colors duration-300 cursor-pointer"><h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white px-2">${item.name}</h1><p class="text-9xl font-black text-gray-900 dark:text-white">${item.current}</p><p class="text-xl font-medium text-gray-700 dark:text-gray-200">Total Required: ${item.required}</p></div><div class="w-full text-gray-500 dark:text-gray-400 flex flex-col items-center space-y-3"><p>Tap to count missing items. Swipe for next/prev.</p><div class="flex items-center space-x-2"><button id="reset-item-button" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-2 px-4 rounded-lg text-sm">Reset Item</button><div id="pack-size-editor" class="flex items-center space-x-2"><label for="pack-size-input" class="font-semibold">Pack Size:</label><input type="number" id="pack-size-input" value="${item.packSize || 1}" min="1" class="edit-input w-20 text-center"></div></div></div>`;
         }
 
         function renderListView() {
@@ -167,15 +144,15 @@
             let itemsFound = false;
             appData.trolleyData.forEach(drawer => {
                 drawer.items.forEach(item => {
-                    if (item.current < item.required) {
+                    if (item.current > 0) {
                         itemsFound = true;
                         if (!itemsByLocation[item.location]) itemsByLocation[item.location] = [];
-                        itemsByLocation[item.location].push({ name: item.name, needed: item.required - item.current });
+                        itemsByLocation[item.location].push({ name: item.name, needed: item.current });
                     }
                 });
             });
             if (!itemsFound) {
-                listView.innerHTML = `<div class="text-center py-16"><h2 class="text-3xl font-bold text-green-500">All Stocked!</h2><p class="text-gray-500 dark:text-gray-400 mt-2">No items require restocking.</p></div>`;
+                listView.innerHTML = `<div class="text-center py-16"><h2 class="text-3xl font-bold text-green-500">No Items to Restock!</h2><p class="text-gray-500 dark:text-gray-400 mt-2">All counts are at zero.</p></div>`;
                 return;
             }
             let listHtml = `<div class="mb-4"><button id="copy-list-btn" class="w-full p-3 bg-indigo-500 text-white font-bold rounded-md hover:bg-indigo-600">Copy List for Sharing</button></div>`;
@@ -183,7 +160,7 @@
             sortedLocations.forEach(location => {
                 listHtml += `<h2 class="text-xl font-bold mt-4 mb-2 text-gray-800 dark:text-gray-200">${location}</h2><ul class="space-y-3">`;
                 itemsByLocation[location].forEach(item => {
-                    listHtml += `<li class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow"><div class="flex justify-between items-center"><span class="text-lg font-semibold text-gray-900 dark:text-white">${item.name}</span><span class="bg-red-500 text-white text-lg font-bold py-1 px-3 rounded-full">${item.needed}</span></div></li>`;
+                    listHtml += `<li class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg shadow flex items-center space-x-3"><input type="checkbox" class="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><div class="flex-grow flex justify-between items-center item-text"><span class="text-lg font-semibold text-gray-900 dark:text-white">${item.name}</span><span class="bg-white text-red-600 border-2 border-red-600 font-bold text-lg py-1 px-3 rounded-full">${item.needed}</span></div></li>`;
                 });
                 listHtml += '</ul>';
             });
@@ -193,9 +170,7 @@
         function renderEditView() {
             let locationOptions = appData.locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
             let editHtml = `<div class="space-y-6">
-                <details class="bg-gray-200 dark:bg-gray-900 p-4 rounded-lg shadow-md" open>
-                    <summary class="flex items-center justify-between font-bold text-lg text-gray-700 dark:text-gray-200">Manage Locations <span class="arrow text-gray-500">&#9654;</span></summary>
-                    <div class="mt-4 space-y-2">`;
+                <details class="bg-gray-200 dark:bg-gray-900 p-4 rounded-lg shadow-md" open><summary class="flex items-center justify-between font-bold text-lg text-gray-700 dark:text-gray-200">Manage Locations <span class="arrow text-gray-500">&#9654;</span></summary><div class="mt-4 space-y-2">`;
             appData.locations.forEach((loc, index) => {
                 editHtml += `<div class="flex items-center space-x-2"><input type="text" class="edit-input flex-grow" value="${loc}" data-location-index="${index}"><button class="delete-location-btn p-2 bg-red-600 text-white rounded-md" data-location-index="${index}">X</button></div>`;
             });
@@ -238,9 +213,11 @@
         
         // --- EVENT LISTENERS ---
         document.querySelector('nav').addEventListener('click', e => e.target.matches('.tab-button') && switchView(e.target.dataset.view));
-        footer.addEventListener('click', e => {
-            if (e.target.closest('#reset-counts-button') && confirm("Reset all counts?")) {
-                appData.trolleyData.forEach(d => d.items.forEach(i => i.current = i.required));
+        document.getElementById('reset-counts-button').addEventListener('click', () => {
+            if (confirm("Reset all counts to zero?")) {
+                appData.trolleyData.forEach(drawer => {
+                    drawer.items.forEach(item => item.current = 0);
+                });
                 saveData();
                 renderAll();
             }
@@ -263,14 +240,19 @@
             }
         });
         listView.addEventListener('click', e => {
-            if (e.target.id === 'copy-list-btn') {
+            const target = e.target;
+            if (target.matches('input[type="checkbox"]')) {
+                const listItem = target.closest('li');
+                if (listItem) listItem.classList.toggle('list-item-checked');
+            }
+            else if (target.id === 'copy-list-btn') {
                 let textToCopy = "Anaesthetic Trolley Restock List:\n";
                 const itemsByLocation = {};
                 appData.trolleyData.forEach(drawer => {
                     drawer.items.forEach(item => {
-                        if (item.current < item.required) {
+                        if (item.current > 0) {
                             if (!itemsByLocation[item.location]) itemsByLocation[item.location] = [];
-                            itemsByLocation[item.location].push({ name: item.name, needed: item.required - item.current });
+                            itemsByLocation[item.location].push({ name: item.name, needed: item.current });
                         }
                     });
                 });
@@ -285,9 +267,9 @@
                 textArea.select();
                 try {
                     document.execCommand('copy');
-                    e.target.textContent = 'Copied!';
-                    e.target.classList.add('bg-green-500');
-                    setTimeout(() => { e.target.textContent = 'Copy List for Sharing'; e.target.classList.remove('bg-green-500'); }, 2000);
+                    target.textContent = 'Copied!';
+                    target.classList.add('bg-green-500');
+                    setTimeout(() => { target.textContent = 'Copy List for Sharing'; target.classList.remove('bg-green-500'); }, 2000);
                 } catch (err) { console.error('Copy failed', err); }
                 document.body.removeChild(textArea);
             }
@@ -299,7 +281,7 @@
             else if (target.matches('.add-item-btn')) {
                 e.preventDefault();
                 target.closest('details').open = true;
-                appData.trolleyData[target.dataset.drawerIndex].items.push({ name: "New Item", required: 1, current: 1, location: appData.locations[0] || "", packSize: 1 });
+                appData.trolleyData[target.dataset.drawerIndex].items.push({ name: "New Item", required: 1, current: 0, location: appData.locations[0] || "", packSize: 1 });
             }
             else if (target.matches('.delete-drawer-btn')) {
                 e.preventDefault();
@@ -354,7 +336,7 @@
                         if (confirm("Replace current data with the contents of this file?")) {
                             appData = importedData;
                             saveData();
-                            loadData();
+                            loadDataAndInitializeCounts();
                             renderAll();
                             renderEditView();
                             alert("Data imported successfully!");
@@ -374,24 +356,23 @@
             exportBtn.disabled = true;
 
             try {
-                const jsonString = JSON.stringify(appData, null, 2);
+                const cleanData = JSON.parse(JSON.stringify(appData));
+                cleanData.trolleyData.forEach(d => d.items.forEach(i => delete i.current));
+
+                const jsonString = JSON.stringify(cleanData, null, 2);
                 const blob = new Blob([jsonString], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-
                 a.href = url;
                 a.download = `trolley-backup-${new Date().toISOString().slice(0,10)}.json`;
-                
                 document.body.appendChild(a);
                 a.click();
-
                 setTimeout(() => {
                     document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
                     exportBtn.textContent = 'Export to File (JSON)';
                     exportBtn.disabled = false;
                 }, 100);
-
             } catch (error) {
                 console.error("Export failed:", error);
                 exportBtn.textContent = 'Export Failed!';
@@ -404,25 +385,19 @@
 
         // --- COMBINED TAP AND SWIPE LOGIC ---
         let touchStartX = 0, touchStartY = 0;
-        let touchStartTarget = null;
-
         appContainer.addEventListener('touchstart', e => {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
-            touchStartTarget = e.target;
         }, { passive: true });
 
         appContainer.addEventListener('touchend', e => {
             if (activeView !== 'counting' || !appData.trolleyData || appData.trolleyData.length === 0) return;
-
             const touchEndX = e.changedTouches[0].screenX;
             const touchEndY = e.changedTouches[0].screenY;
             const deltaX = touchEndX - touchStartX;
             const deltaY = touchEndY - touchStartY;
             const swipeThreshold = 50;
-            const tapThreshold = 10;
 
-            // Check for a swipe first
             if (Math.abs(deltaX) > swipeThreshold || Math.abs(deltaY) > swipeThreshold) {
                 if (Math.abs(deltaX) > Math.abs(deltaY)) {
                     const items = appData.trolleyData[currentDrawerIndex]?.items || [];
@@ -439,43 +414,23 @@
                 }
                 renderCountingView();
             }
-            // Then check for a tap
-            else if (Math.abs(deltaX) < tapThreshold && Math.abs(deltaY) < tapThreshold) {
-                const item = appData.trolleyData[currentDrawerIndex]?.items[currentItemIndex];
-                if (!item) return;
-
-                if (touchStartTarget.closest('#reset-item-button')) {
-                    item.current = item.required;
-                } else if (touchStartTarget.closest('#count-display')) {
-                    item.current = Math.max(0, item.current - (parseInt(item.packSize) || 1));
-                } else {
-                    return;
-                }
-                saveData();
-                renderCountingView();
-            }
         });
 
-        // Add a separate click listener for non-touch devices
-        appContainer.addEventListener('click', e => {
-            if ('ontouchstart' in window || activeView !== 'counting') return;
-            
+        countingView.addEventListener('click', e => {
             const item = appData.trolleyData[currentDrawerIndex]?.items[currentItemIndex];
             if (!item) return;
-
             if (e.target.closest('#reset-item-button')) {
-                item.current = item.required;
+                item.current = 0;
             } else if (e.target.closest('#count-display')) {
-                item.current = Math.max(0, item.current - (parseInt(item.packSize) || 1));
-            } else {
-                return;
-            }
+                const packSize = parseInt(item.packSize) || 1;
+                item.current = Math.min(item.required, item.current + packSize);
+            } else { return; }
             saveData();
             renderCountingView();
         });
 
         // --- INITIALIZATION ---
-        loadData();
+        loadDataAndInitializeCounts();
         switchView('counting');
     </script>
 </body>
