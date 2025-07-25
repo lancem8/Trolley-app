@@ -168,7 +168,33 @@
             listView.innerHTML = listHtml;
         }
 
-        function renderEditView() { /* ... (Unchanged) ... */ }
+        function renderEditView() {
+            let locationOptions = appData.locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+            let editHtml = `<div class="space-y-6">
+                <details class="bg-slate-200 dark:bg-slate-900 p-4 rounded-lg shadow-md" open><summary class="flex items-center justify-between font-bold text-lg text-slate-700 dark:text-slate-200">Manage Locations <span class="arrow text-slate-500">&#9654;</span></summary><div class="mt-4 space-y-2">`;
+            appData.locations.forEach((loc, index) => {
+                editHtml += `<div class="flex items-center space-x-2"><input type="text" class="edit-input flex-grow" value="${loc}" data-location-index="${index}"><button class="delete-location-btn p-2 bg-rose-600 text-white rounded-md" data-location-index="${index}">X</button></div>`;
+            });
+            editHtml += `</div><div class="flex items-center space-x-2 pt-4"><input type="text" id="new-location-input" class="edit-input flex-grow" placeholder="New location name..."><button id="add-location-btn" class="p-2 bg-teal-500 text-white rounded-md">Add</button></div></details>`;
+            
+            appData.trolleyData.forEach((drawer, drawerIndex) => {
+                editHtml += `<details class="bg-slate-100 dark:bg-slate-700 p-4 rounded-lg shadow-md"><summary class="flex items-center justify-between font-bold text-lg"><div class="flex-grow mr-2"><input type="text" value="${drawer.drawerName}" data-drawer-index="${drawerIndex}" class="edit-input font-bold text-lg" placeholder="Drawer Name"></div><button class="delete-drawer-btn p-2 bg-rose-600 text-white rounded-md" data-drawer-index="${drawerIndex}">X</button><span class="arrow text-slate-500 ml-2">&#9654;</span></summary><div class="mt-4 space-y-3 pl-4 border-l-4 border-slate-300 dark:border-slate-500">`;
+                drawer.items.forEach((item, itemIndex) => {
+                    editHtml += `<div class="item-edit-container space-y-2 bg-white dark:bg-slate-800 p-3 rounded-md"><input type="text" value="${item.name}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="name" class="edit-input flex-grow" placeholder="Item Name"><div class="flex space-x-2 mt-2"><input type="number" value="${item.required}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="required" class="edit-input w-1/3" placeholder="Required"><input type="number" value="${item.packSize || 1}" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="packSize" class="edit-input w-1/3" placeholder="Pack Size"><select data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}" data-field="location" class="edit-select w-1/3">${locationOptions}</select></div><button class="delete-item-btn p-1 bg-rose-600 text-white rounded-md text-xs w-full mt-1" data-drawer-index="${drawerIndex}" data-item-index="${itemIndex}">Delete Item</button></div>`;
+                });
+                editHtml += `</div><button class="add-item-btn w-full mt-2 p-2 bg-blue-600 text-white rounded-md" data-drawer-index="${drawerIndex}">+ Add Item</button></details>`;
+            });
+            editHtml += `</div><div class="mt-8 space-y-4 border-t-2 pt-4"><h3 class="text-lg font-bold text-center text-slate-600 dark:text-slate-300">Manage Trolley Data</h3><button id="add-drawer-btn" class="w-full p-3 bg-teal-600 text-white font-bold rounded-md">+ Add New Drawer</button><button id="import-btn" class="w-full p-3 bg-sky-600 text-white font-bold rounded-md">Import from File (JSON)</button><button id="export-btn" class="w-full p-3 bg-indigo-600 text-white font-bold rounded-md">Export to File (JSON)</button></div>`;
+            editView.innerHTML = editHtml;
+            
+            appData.trolleyData.forEach((drawer, drawerIndex) => {
+                drawer.items.forEach((item, itemIndex) => {
+                    const select = editView.querySelector(`select[data-drawer-index='${drawerIndex}'][data-item-index='${itemIndex}']`);
+                    if(select) select.value = item.location;
+                });
+            });
+        }
+
         function switchView(view) {
             activeView = view;
             document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
@@ -258,12 +284,114 @@
             }
         });
 
-        editView.addEventListener('click', e => { /* ... (Unchanged) ... */ });
-        editView.addEventListener('change', e => { /* ... (Unchanged) ... */ });
-        importFileInput.addEventListener('change', e => { /* ... (Unchanged) ... */ });
+        editView.addEventListener('click', e => {
+            const target = e.target;
+            let shouldReRender = true;
+            if (target.id === 'add-drawer-btn') appData.trolleyData.push({ drawerName: "New Drawer", items: [] });
+            else if (target.matches('.add-item-btn')) {
+                e.preventDefault();
+                target.closest('details').open = true;
+                appData.trolleyData[target.dataset.drawerIndex].items.push({ name: "New Item", required: 1, current: 0, location: appData.locations[0] || "", packSize: 1 });
+            }
+            else if (target.matches('.delete-drawer-btn')) {
+                e.preventDefault();
+                if (confirm("Delete drawer?")) appData.trolleyData.splice(target.dataset.drawerIndex, 1);
+            }
+            else if (target.matches('.delete-item-btn')) {
+                if (confirm("Delete item?")) appData.trolleyData[target.dataset.drawerIndex].items.splice(target.dataset.itemIndex, 1);
+            }
+            else if (target.id === 'import-btn') { importFileInput.click(); shouldReRender = false; }
+            else if (target.id === 'export-btn') { exportDataToJson(); shouldReRender = false; }
+            else if (target.matches('.delete-location-btn')) {
+                e.preventDefault();
+                target.closest('details').open = true;
+                const index = parseInt(target.dataset.locationIndex);
+                if (confirm(`Delete location "${appData.locations[index]}"?`)) appData.locations.splice(index, 1);
+            } else if (target.id === 'add-location-btn') {
+                e.preventDefault();
+                target.closest('details').open = true;
+                const newLocInput = document.getElementById('new-location-input');
+                if (newLocInput.value.trim()) appData.locations.push(newLocInput.value.trim());
+                newLocInput.value = "";
+            } else { shouldReRender = false; }
+            
+            if (shouldReRender) {
+                saveData();
+                renderEditView();
+            }
+        });
+        editView.addEventListener('change', e => {
+            const target = e.target;
+            if (target.matches('.edit-input, .edit-select')) {
+                const { drawerIndex, itemIndex, field, locationIndex } = target.dataset;
+                if (locationIndex !== undefined) {
+                    appData.locations[parseInt(locationIndex)] = target.value;
+                } else if (itemIndex !== undefined) {
+                    const value = (field === 'required' || field === 'packSize') ? parseInt(target.value) || 1 : target.value;
+                    appData.trolleyData[drawerIndex].items[itemIndex][field] = value;
+                } else {
+                    appData.trolleyData[drawerIndex].drawerName = target.value;
+                }
+                saveData();
+            }
+        });
+        importFileInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData && typeof importedData === 'object' && Array.isArray(importedData.trolleyData) && Array.isArray(importedData.locations)) {
+                        if (confirm("Replace current data with the contents of this file?")) {
+                            appData = importedData;
+                            saveData();
+                            loadDataAndInitializeCounts();
+                            renderAll();
+                            renderEditView();
+                            alert("Data imported successfully!");
+                        }
+                    } else { alert("Import failed: Invalid file format."); }
+                } catch (error) { alert("Import failed: Could not parse file."); }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
 
         // --- IMPORT/EXPORT LOGIC ---
-        function exportDataToJson() { /* ... (Unchanged) ... */ }
+        function exportDataToJson() {
+            const exportBtn = document.getElementById('export-btn');
+            if (!exportBtn) return;
+            exportBtn.textContent = 'Exporting...';
+            exportBtn.disabled = true;
+
+            try {
+                const cleanData = JSON.parse(JSON.stringify(appData));
+                cleanData.trolleyData.forEach(d => d.items.forEach(i => delete i.current));
+
+                const jsonString = JSON.stringify(cleanData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `trolley-backup-${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    exportBtn.textContent = 'Export to File (JSON)';
+                    exportBtn.disabled = false;
+                }, 100);
+            } catch (error) {
+                console.error("Export failed:", error);
+                exportBtn.textContent = 'Export Failed!';
+                setTimeout(() => {
+                    exportBtn.textContent = 'Export to File (JSON)';
+                    exportBtn.disabled = false;
+                }, 2000);
+            }
+        }
 
         // --- COMBINED TAP AND SWIPE LOGIC ---
         let touchStartX = 0, touchStartY = 0;
