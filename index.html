@@ -136,37 +136,38 @@
                 bgColorClass = 'bg-yellow-300 dark:bg-yellow-700'; // Warning color if items are needed
             }
 
-            countingView.innerHTML = `
-                <div class="w-full">
-                    <p class="text-xl md:text-2xl font-semibold text-gray-500 dark:text-gray-400">${drawer.drawerName}</p>
-                    <p class="text-sm text-gray-400 dark:text-gray-500">Item ${currentItemIndex + 1} of ${drawer.items.length}</p>
-                </div>
-                <div id="count-display" class="flex-grow w-full flex flex-col justify-between items-center ${bgColorClass} rounded-2xl my-4 p-4 transition-colors duration-300 cursor-pointer">
-                    <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">${item.name}</h1>
-                    <div class="text-center">
-                        <p class="text-lg font-medium text-gray-700 dark:text-gray-200">Stock Needed:</p>
-                        <p class="text-9xl font-black text-gray-900 dark:text-white leading-none">${item.current}</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-lg font-medium text-gray-700 dark:text-gray-200">Level Required:</p>
-                        <p class="text-4xl font-bold text-gray-800 dark:text-white">${item.required}</p>
-                    </div>
-                </div>
-                <div class="w-full text-gray-500 dark:text-gray-400 flex flex-col items-center space-y-3">
-                    <p>Tap to count missing items. Swipe up/down for items, left/right for drawers.</p>
-                    <div class="flex items-center space-x-2">
-                        <button id="reset-item-button" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-2 px-4 rounded-lg text-sm">Reset Item</button>
-                        <div id="pack-size-editor" class="flex items-center space-x-2">
-                            <label for="pack-size-input" class="font-semibold">Pack Size:</label>
-                            <input type="number" id="pack-size-input" value="${item.packSize || 1}" min="1" class="edit-input w-20 text-center">
-                        </div>
-                    </div>
-                </div>
-            `;
+            countingView.innerHTML = `<div class="w-full"><p class="text-xl md:text-2xl font-semibold text-gray-500 dark:text-gray-400">${drawer.drawerName}</p><p class="text-sm text-gray-400 dark:text-gray-500">Item ${currentItemIndex + 1} of ${drawer.items.length}</p></div><div id="count-display" class="flex-grow w-full flex flex-col justify-between items-center ${bgColorClass} rounded-2xl my-4 p-4 transition-colors duration-300 cursor-pointer"><h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">${item.name}</h1><div class="text-center"><p class="text-lg font-medium text-gray-700 dark:text-gray-200">Stock Needed:</p><p class="text-9xl font-black text-gray-900 dark:text-white leading-none">${item.current}</p></div><div class="text-center"><p class="text-lg font-medium text-gray-700 dark:text-gray-200">Level Required:</p><p class="text-4xl font-bold text-gray-800 dark:text-white">${item.required}</p></div></div><div class="w-full text-gray-500 dark:text-gray-400 flex flex-col items-center space-y-3"><p>Tap to count missing items. Swipe up/down for items, left/right for drawers.</p><div class="flex items-center space-x-2"><button id="reset-item-button" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-2 px-4 rounded-lg text-sm">Reset Item</button><div id="pack-size-editor" class="flex items-center space-x-2"><label for="pack-size-input" class="font-semibold">Pack Size:</label><input type="number" id="pack-size-input" value="${item.packSize || 1}" min="1" class="edit-input w-20 text-center"></div></div></div>`;
         }
 
 
-        function renderListView() { /* ... (Unchanged) ... */ }
+        function renderListView() {
+            const itemsByLocation = {};
+            let itemsFound = false;
+            appData.trolleyData.forEach(drawer => {
+                drawer.items.forEach(item => {
+                    if (item.current > 0) {
+                        itemsFound = true;
+                        if (!itemsByLocation[item.location]) itemsByLocation[item.location] = [];
+                        itemsByLocation[item.location].push({ name: item.name, needed: item.current });
+                    }
+                });
+            });
+            if (!itemsFound) {
+                listView.innerHTML = `<div class="text-center py-16"><h2 class="text-3xl font-bold text-green-500">No Items to Restock!</h2><p class="text-gray-500 dark:text-gray-400 mt-2">All counts are at zero.</p></div>`;
+                return;
+            }
+            let listHtml = `<div class="mb-4"><button id="copy-list-btn" class="w-full p-3 bg-indigo-500 text-white font-bold rounded-md hover:bg-indigo-600">Copy List for Sharing</button></div>`;
+            const sortedLocations = Object.keys(itemsByLocation).sort();
+            sortedLocations.forEach(location => {
+                listHtml += `<h2 class="text-xl font-bold mt-4 mb-2 text-gray-800 dark:text-gray-200">${location}</h2><ul class="space-y-3">`;
+                itemsByLocation[location].forEach(item => {
+                    listHtml += `<li class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg shadow flex items-center space-x-3"><input type="checkbox" class="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><div class="flex-grow flex justify-between items-center item-text"><span class="text-lg font-semibold text-gray-900 dark:text-white">${item.name}</span><span class="bg-red-600 text-white font-bold text-xl w-12 h-12 flex items-center justify-center rounded-lg">${item.needed}</span></div></li>`;
+                });
+                listHtml += '</ul>';
+            });
+            listView.innerHTML = listHtml;
+        }
+
         function renderEditView() { /* ... (Unchanged) ... */ }
         function switchView(view) {
             activeView = view;
