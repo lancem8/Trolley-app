@@ -136,7 +136,7 @@
                 bgColorClass = 'bg-amber-400 dark:bg-amber-600'; // Warning color if items are needed
             }
 
-            countingView.innerHTML = `<div class="w-full"><p class="text-xl md:text-2xl font-semibold text-slate-500 dark:text-slate-400">${drawer.drawerName}</p><p class="text-sm text-slate-400 dark:text-slate-500">Item ${currentItemIndex + 1} of ${drawer.items.length}</p></div><div id="count-display" class="flex-grow w-full flex flex-col justify-between items-center ${bgColorClass} rounded-2xl my-4 p-4 transition-colors duration-300 cursor-pointer"><h1 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white">${item.name}</h1><div class="text-center"><p class="text-lg font-medium text-slate-700 dark:text-slate-200">Stock Needed:</p><p class="text-9xl font-black text-slate-900 dark:text-white leading-none">${item.current}</p></div><div class="text-center"><p class="text-lg font-medium text-slate-700 dark:text-slate-200">Level Required:</p><p class="text-4xl font-bold text-slate-800 dark:text-white">${item.required}</p></div></div><div class="w-full text-slate-500 dark:text-slate-400 flex flex-col items-center space-y-3"><p>Tap to count missing items. Swipe up/down for items, left/right for drawers.</p><div class="flex items-center space-x-2"><button id="reset-item-button" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg text-sm">Reset Item</button><div id="pack-size-editor" class="flex items-center space-x-2"><label for="pack-size-input" class="font-semibold">Pack Size:</label><input type="number" id="pack-size-input" value="${item.packSize || 1}" min="1" class="edit-input w-20 text-center"></div></div></div>`;
+            countingView.innerHTML = `<div class="w-full"><p class="text-xl md:text-2xl font-semibold text-slate-500 dark:text-slate-400">${drawer.drawerName}</p><p class="text-sm text-slate-400 dark:text-slate-500">Item ${currentItemIndex + 1} of ${drawer.items.length}</p></div><div id="count-display" class="flex-grow w-full flex flex-col justify-between items-center ${bgColorClass} rounded-2xl my-4 p-4 transition-colors duration-300 cursor-pointer"><h1 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white">${item.name}</h1><div class="text-center"><p class="text-lg font-medium text-slate-700 dark:text-slate-200">Stock Needed:</p><p class="text-9xl font-black text-slate-900 dark:text-white leading-none">${item.current}</p></div><div class="text-center"><p class="text-lg font-medium text-slate-700 dark:text-slate-200">Level Required:</p><p class="text-4xl font-bold text-slate-800 dark:text-white">${item.required}</p></div></div><div class="w-full text-slate-500 dark:text-slate-400 flex flex-col items-center space-y-3"><p>Tap to count missing items. Swipe left/right for items, up/down for drawers.</p><div class="flex items-center space-x-2"><button id="reset-item-button" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg text-sm">Reset Item</button><div id="pack-size-editor" class="flex items-center space-x-2"><label for="pack-size-input" class="font-semibold">Pack Size:</label><input type="number" id="pack-size-input" value="${item.packSize || 1}" min="1" class="edit-input w-20 text-center"></div></div></div>`;
         }
 
 
@@ -161,7 +161,7 @@
             sortedLocations.forEach(location => {
                 listHtml += `<h2 class="text-xl font-bold mt-4 mb-2 text-slate-800 dark:text-slate-200">${location}</h2><ul class="space-y-3">`;
                 itemsByLocation[location].forEach(item => {
-                    listHtml += `<li class="bg-slate-100 dark:bg-slate-700 p-3 rounded-lg shadow flex items-center space-x-3"><input type="checkbox" class="h-6 w-6 rounded border-slate-300 text-blue-600 focus:ring-blue-500"><div class="flex-grow flex justify-between items-center item-text"><span class="text-lg font-semibold text-slate-900 dark:text-white">${item.name}</span><span class="bg-rose-600 text-white font-bold text-xl w-12 h-12 flex items-center justify-center rounded-lg">${item.needed}</span></div></li>`;
+                    listHtml += `<li class="bg-slate-100 dark:bg-slate-700 p-3 rounded-lg shadow flex items-center space-x-3 cursor-pointer"><input type="checkbox" class="h-6 w-6 rounded border-slate-300 text-blue-600 focus:ring-blue-500 pointer-events-none"><div class="flex-grow flex justify-between items-center item-text"><span class="text-lg font-semibold text-slate-900 dark:text-white">${item.name}</span><span class="bg-rose-600 text-white font-bold text-xl w-12 h-12 flex items-center justify-center rounded-lg">${item.needed}</span></div></li>`;
                 });
                 listHtml += '</ul>';
             });
@@ -216,7 +216,48 @@
                 }
             }
         });
-        listView.addEventListener('click', e => { /* ... (Unchanged) ... */ });
+        
+        listView.addEventListener('click', e => {
+            const target = e.target;
+            const listItem = target.closest('li');
+
+            if (listItem) {
+                listItem.classList.toggle('list-item-checked');
+                const checkbox = listItem.querySelector('input[type="checkbox"]');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                }
+            }
+            else if (target.id === 'copy-list-btn') {
+                let textToCopy = "Anaesthetic Trolley Restock List:\n";
+                const itemsByLocation = {};
+                appData.trolleyData.forEach(drawer => {
+                    drawer.items.forEach(item => {
+                        if (item.current > 0) {
+                            if (!itemsByLocation[item.location]) itemsByLocation[item.location] = [];
+                            itemsByLocation[item.location].push({ name: item.name, needed: item.current });
+                        }
+                    });
+                });
+                const sortedLocations = Object.keys(itemsByLocation).sort();
+                sortedLocations.forEach(location => {
+                    textToCopy += `\n--- ${location} ---\n`;
+                    itemsByLocation[location].forEach(item => { textToCopy += `- ${item.name} (x${item.needed})\n`; });
+                });
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    target.textContent = 'Copied!';
+                    target.classList.add('bg-teal-500');
+                    setTimeout(() => { target.textContent = 'Copy List for Sharing'; target.classList.remove('bg-teal-500'); }, 2000);
+                } catch (err) { console.error('Copy failed', err); }
+                document.body.removeChild(textArea);
+            }
+        });
+
         editView.addEventListener('click', e => { /* ... (Unchanged) ... */ });
         editView.addEventListener('change', e => { /* ... (Unchanged) ... */ });
         importFileInput.addEventListener('change', e => { /* ... (Unchanged) ... */ });
@@ -226,11 +267,9 @@
 
         // --- COMBINED TAP AND SWIPE LOGIC ---
         let touchStartX = 0, touchStartY = 0;
-        let touchStartTarget = null;
         appContainer.addEventListener('touchstart', e => {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
-            touchStartTarget = e.target;
         }, { passive: true });
 
         appContainer.addEventListener('touchend', e => {
@@ -240,48 +279,28 @@
             const deltaX = touchEndX - touchStartX;
             const deltaY = touchEndY - touchStartY;
             const swipeThreshold = 50;
-            const tapThreshold = 10;
 
-            // Check for a swipe first
-            if (Math.abs(deltaY) > swipeThreshold && Math.abs(deltaY) > Math.abs(deltaX)) {
+            if (Math.abs(deltaX) > swipeThreshold && Math.abs(deltaX) > Math.abs(deltaY)) {
                 const items = appData.trolleyData[currentDrawerIndex]?.items || [];
                 if (items.length > 1) {
-                    currentItemIndex += deltaY < 0 ? 1 : -1; // Up swipe is next
+                    currentItemIndex += deltaX < 0 ? 1 : -1; // Left swipe is next
                     if (currentItemIndex >= items.length) currentItemIndex = 0;
                     if (currentItemIndex < 0) currentItemIndex = items.length - 1;
                     renderCountingView();
                 }
-            } else if (Math.abs(deltaX) > swipeThreshold) {
+            } else if (Math.abs(deltaY) > swipeThreshold) {
                 const numDrawers = appData.trolleyData.length;
                 if (numDrawers > 1) {
-                    currentDrawerIndex += deltaX < 0 ? 1 : -1; // Left swipe is next
+                    currentDrawerIndex += deltaY < 0 ? 1 : -1; // Up swipe is next
                     if (currentDrawerIndex >= numDrawers) currentDrawerIndex = 0;
                     if (currentDrawerIndex < 0) currentDrawerIndex = numDrawers - 1;
                     currentItemIndex = 0;
                     renderCountingView();
                 }
             }
-            // Then check for a tap
-            else if (Math.abs(deltaX) < tapThreshold && Math.abs(deltaY) < tapThreshold) {
-                const item = appData.trolleyData[currentDrawerIndex]?.items[currentItemIndex];
-                if (!item) return;
-
-                if (touchStartTarget.closest('#reset-item-button')) {
-                    item.current = 0;
-                } else if (touchStartTarget.closest('#count-display')) {
-                    const packSize = parseInt(item.packSize) || 1;
-                    item.current = Math.min(item.required, item.current + packSize);
-                } else {
-                    return;
-                }
-                saveData();
-                renderCountingView();
-            }
         });
 
-        // Add a separate click listener for non-touch devices
-        appContainer.addEventListener('click', e => {
-            if ('ontouchstart' in window || activeView !== 'counting') return;
+        countingView.addEventListener('click', e => {
             const item = appData.trolleyData[currentDrawerIndex]?.items[currentItemIndex];
             if (!item) return;
 
